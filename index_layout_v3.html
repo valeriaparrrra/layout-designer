@@ -1,0 +1,154 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layout Designer v3</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; display: flex; height: 100vh; }
+  #sidebar { width: 250px; background: #f5f5f5; padding: 10px; overflow-y: auto; }
+  #canvas { flex: 1; background: #fff; border-left: 1px solid #ccc; position: relative; }
+  .toolbar button { margin: 5px; }
+  .selected { outline: 2px dashed red; }
+</style>
+</head>
+<body>
+<div id="sidebar">
+  <h3>Herramientas</h3>
+  <div class="toolbar">
+    <button onclick="addShape('rect')">Rectángulo</button>
+    <button onclick="addShape('circle')">Círculo</button>
+    <button onclick="addShape('line')">Línea</button>
+    <button onclick="addShape('arrow')">Flecha</button>
+    <button onclick="addShape('dotted')">Línea punteada</button>
+    <button onclick="addText()">Texto</button>
+  </div>
+  <h3>Propiedades</h3>
+  <div id="properties"></div>
+</div>
+<div id="canvas"></div>
+
+<script>
+let selected = null;
+let zIndexCounter = 1;
+const canvas = document.getElementById('canvas');
+const props = document.getElementById('properties');
+
+function addShape(type) {
+  const el = document.createElement('div');
+  el.style.position = 'absolute';
+  el.style.left = '50px';
+  el.style.top = '50px';
+  el.style.cursor = 'move';
+  el.style.zIndex = zIndexCounter++;
+  el.dataset.type = type;
+  
+  if (type === 'rect') {
+    el.style.width = '100px';
+    el.style.height = '60px';
+    el.style.background = 'blue';
+  } else if (type === 'circle') {
+    el.style.width = '60px';
+    el.style.height = '60px';
+    el.style.borderRadius = '50%';
+    el.style.background = 'blue';
+  } else if (type === 'line' || type === 'arrow' || type === 'dotted') {
+    el.style.width = '100px';
+    el.style.height = '2px';
+    el.style.background = 'black';
+    if (type === 'dotted') el.style.borderTop = '2px dotted black';
+  }
+  
+  makeDraggable(el);
+  el.onclick = () => selectElement(el);
+  canvas.appendChild(el);
+}
+
+function addText() {
+  const el = document.createElement('div');
+  el.style.position = 'absolute';
+  el.style.left = '50px';
+  el.style.top = '50px';
+  el.style.minWidth = '50px';
+  el.style.minHeight = '20px';
+  el.style.padding = '2px';
+  el.style.background = 'transparent';
+  el.style.zIndex = zIndexCounter++;
+  el.contentEditable = true;
+  el.innerText = 'Texto';
+  el.dataset.type = 'text';
+  makeDraggable(el);
+  el.onclick = () => selectElement(el);
+  canvas.appendChild(el);
+}
+
+function makeDraggable(el) {
+  let offsetX, offsetY;
+  el.onmousedown = (e) => {
+    selected = el;
+    offsetX = e.clientX - el.offsetLeft;
+    offsetY = e.clientY - el.offsetTop;
+    document.onmousemove = (e) => {
+      el.style.left = e.clientX - offsetX + 'px';
+      el.style.top = e.clientY - offsetY + 'px';
+    };
+    document.onmouseup = () => {
+      document.onmousemove = null;
+    };
+  };
+}
+
+function selectElement(el) {
+  document.querySelectorAll('#canvas div').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+  selected = el;
+  showProperties(el);
+}
+
+function showProperties(el) {
+  props.innerHTML = '';
+  
+  // Ancho y alto (acepta decimales)
+  ['width', 'height'].forEach((dim, i) => {
+    const label = document.createElement('label');
+    label.textContent = (i === 0 ? 'Ancho' : 'Alto') + ' (px):';
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.step = '0.01';
+    input.value = parseFloat(el.style[dim]);
+    input.oninput = () => el.style[dim] = input.value + 'px';
+    props.appendChild(label);
+    props.appendChild(input);
+  });
+  
+  // Color (con opción sin color)
+  if (el.dataset.type !== 'text') {
+    const colorLabel = document.createElement('label');
+    colorLabel.textContent = 'Color:';
+    const colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.oninput = () => el.style.background = colorInput.value;
+    props.appendChild(colorLabel);
+    props.appendChild(colorInput);
+    
+    const noColorBtn = document.createElement('button');
+    noColorBtn.textContent = 'Sin color';
+    noColorBtn.onclick = () => el.style.background = 'transparent';
+    props.appendChild(noColorBtn);
+  }
+  
+  // Botones de orden Z
+  const bringFront = document.createElement('button');
+  bringFront.textContent = 'Al frente';
+  bringFront.onclick = () => el.style.zIndex = ++zIndexCounter;
+  props.appendChild(bringFront);
+  
+  const sendBack = document.createElement('button');
+  sendBack.textContent = 'Detrás';
+  sendBack.onclick = () => el.style.zIndex = 0;
+  props.appendChild(sendBack);
+}
+</script>
+</body>
+</html>
